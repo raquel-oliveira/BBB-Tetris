@@ -2,16 +2,20 @@
 #include <set>
 #include <string>
 #include <map>
+#include <unistd.h> //usleep
 #include <stdio.h>
 #include <algorithm>
 #include "./game.h"
 #include "./terminal.h"
 #include "./stdstyle.h"
+#include "util/api_gpio/pin.h"
+#include "util/api_gpio/pmap.h"
 
 using std::map;
 using std::string;
 using std::set;
 using std::max;
+
 
 game::game(game_settings gm_settings): gm_settings(gm_settings), input_mgr(this), cur_figure_mgr(this), rainbow_feat(this)
 {
@@ -114,10 +118,25 @@ void game::process_input()
 
 void input_manager::process_input()
 {
+	init();
+	Pin btn ("P9_27", Direction::IN, Value::LOW);
+	
 	int ch;
+	int btnValue;
 	while (true)
 	{
 		ch = getch();
+		btnValue = btn.getValue();
+		if (btnValue == 1){
+			if (the_game->is_running()){
+				the_game->set_paused();
+				usleep(500000);
+			}
+			else if (the_game->is_paused())
+				the_game->set_running();
+				usleep(500000);
+			continue;
+		}
 		if (ch == ERR)
 			break; // no input yet.
 		if (ch == 'q' or ch == 'Q')
@@ -138,7 +157,7 @@ void input_manager::process_input()
 			move_horizontal += -1;
 		if (ch == KEY_RIGHT || ch == 'd' || ch == 'D')
 			move_horizontal += +1;
-		if (ch == KEY_DOWN || ch == 's' || ch == 'S')
+		if (ch == KEY_DOWN || ch == 's' || ch == 'S' )
 			move_rotational += -1;
 		if (ch == KEY_UP || ch == 'w' || ch == 'W')
 			move_rotational += +1;
