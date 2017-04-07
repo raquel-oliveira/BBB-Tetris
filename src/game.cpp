@@ -124,15 +124,16 @@ void input_manager::process_input()
 {
 	init();
 	Pin btn ("P9_27", Direction::IN, Value::LOW);
-	int btnValue = 0;
-	int ldrValue = 0;
-
+	int btnValue;
+	int ldrValue;
+	int potValue;
 	int ch;
 	while (true)
 	{
 		ch = getch();
 		btnValue = btn.getValue();
 		ldrValue = readAnalog(PORT_LDR);
+		potValue = readAnalog(PORT_POT);
 		
 		if (btnValue == 1){
 			switch(move_rotational){
@@ -155,6 +156,12 @@ void input_manager::process_input()
 		if (ldrValue > LIGHT_LIMIT )
 			force_fall = true;
 
+		if (potValue < 1100){
+			move_horizontal += +1;
+		} else if (potValue > 3800) {
+			move_horizontal += -1;
+		}
+
 		if (ch == ERR)
 			break; // no input yet.
 		if (ch == 'q' or ch == 'Q')
@@ -168,10 +175,6 @@ void input_manager::process_input()
 		}
 		if (!the_game->is_running())
 			continue;
-		if (ch == KEY_LEFT || ch == 'a' || ch == 'A')
-			move_horizontal += -1;
-		if (ch == KEY_RIGHT || ch == 'd' || ch == 'D')
-			move_horizontal += +1;
 	}
 }
 
