@@ -120,29 +120,39 @@ void input_manager::process_input()
 {
 	init();
 	Pin btn ("P9_27", Direction::IN, Value::LOW);
-	
-	int ch;
 	int btnValue;
+
+	int ch;
 	while (true)
 	{
 		ch = getch();
 		btnValue = btn.getValue();
+
 		if (btnValue == 1){
-			if (the_game->is_running()){
-				the_game->set_paused();
-				usleep(500000);
+			std::cout << btnValue << " btn "<< std::endl;
+			switch(move_rotational){
+				case -1:
+					move_rotational = 0;
+					break;
+				case 0: 
+					move_rotational = 1;
+					break;
+				case 1:
+					move_rotational = 2;
+					break;
+				case 2:
+					move_rotational = -1;
+					break;
 			}
-			else if (the_game->is_paused())
-				the_game->set_running();
-				usleep(500000);
-			continue;
+			btnValue=0;
+			usleep(500000);
 		}
+
 		if (ch == ERR)
 			break; // no input yet.
 		if (ch == 'q' or ch == 'Q')
 			the_game->set_stopped();
-		if (ch == ' ')
-		{
+		if (ch == ' '){
 			if (the_game->is_running())
 				the_game->set_paused();
 			else if (the_game->is_paused())
@@ -157,10 +167,6 @@ void input_manager::process_input()
 			move_horizontal += -1;
 		if (ch == KEY_RIGHT || ch == 'd' || ch == 'D')
 			move_horizontal += +1;
-		if (ch == KEY_DOWN || ch == 's' || ch == 'S' )
-			move_rotational += -1;
-		if (ch == KEY_UP || ch == 'w' || ch == 'W')
-			move_rotational += +1;
 	}
 }
 
