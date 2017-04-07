@@ -4,6 +4,11 @@
 #include <map>
 #include <stdio.h>
 #include <algorithm>
+#include <thread>
+#include <pthread.h>
+#include <fstream>
+#include <sched.h>
+#include <sstream>
 #include "./game.h"
 #include "./terminal.h"
 #include "./stdstyle.h"
@@ -12,6 +17,13 @@ using std::map;
 using std::string;
 using std::set;
 using std::max;
+using std::fstream;
+using std::stringstream;
+using std::ref;
+
+#define PATH_ADC "/sys/bus/iio/devices/iio:device0/in_voltage"
+
+bool running = true;
 
 game::game(game_settings gm_settings): gm_settings(gm_settings), input_mgr(this), cur_figure_mgr(this), rainbow_feat(this)
 {
@@ -45,6 +57,7 @@ void game::update_game()
 	rainbow_feat.update();
 	cur_figure_mgr.update();
 }
+
 
 void game::update_score()
 {
@@ -112,37 +125,67 @@ void game::process_input()
 	input_mgr.process_input();
 }
 
+void read_pot(int32_t &move_horizontal){
+	int number;
+	while(running) {
+		stringstream ss;
+    	ss << PATH_ADC << number << "_raw";
+    	fstream fs;
+    	fs.open(ss.str().c_str(), fstream::in);
+    	fs >> number;
+    	fs.close();
+    	if(number > 2048)
+    		move_horizontal += 1;
+    	else 
+    		move_horizontal += -1;
+    }
+}
+
+void read_botao(){
+
+}
+
+void read_luz(){
+
+}
+
 void input_manager::process_input()
 {
-	int ch;
-	while (true)
-	{
-		ch = getch();
-		if (ch == ERR)
-			break; // no input yet.
-		if (ch == 'q' or ch == 'Q')
-			the_game->set_stopped();
-		if (ch == ' ')
-		{
-			if (the_game->is_running())
-				the_game->set_paused();
-			else if (the_game->is_paused())
-				the_game->set_running();
-			continue;
-		}
-		if (!the_game->is_running())
-			continue;
-		if (ch == '\n')
+	the_game->set_running();
+	char ch;
+	//int valor_pot, valor_botao, valor_luz;
+
+	std::thread pot(read_pot, ref(move_horizontal));
+	std::thread botao(read_botao);
+	std::thread luz(read_luz);
+	struct sched_param param1;
+	struct sched_param param2;
+	struct sched_param param3;
+	param1.sched_priority = sched_get_priority_max(SCHED_RR);
+	param3.sched_priority = sched_get_priority_min(SCHED_RR);
+	param2.sched_priority = sched_get_priority_max(SCHED_RR)/2;
+	pthread_setschedparam(pot.native_handle(), SCHED_RR, &param1);
+	pthread_setschedparam(luz.native_handle(), SCHED_RR, &param2);
+	pthread_setschedparam(botao.native_handle(), SCHED_RR, &param3);
+
+	ch = getchar();
+
+	if (ch == 'q' or ch == 'Q') {
+		running = false;
+		the_game->set_stopped();
+	}
+
+	pot.join();
+	luz.join();
+	botao.join();
+
+	/*if (ch == '\n')
 			force_fall = true;
-		if (ch == KEY_LEFT || ch == 'a' || ch == 'A')
-			move_horizontal += -1;
-		if (ch == KEY_RIGHT || ch == 'd' || ch == 'D')
-			move_horizontal += +1;
 		if (ch == KEY_DOWN || ch == 's' || ch == 'S')
 			move_rotational += -1;
 		if (ch == KEY_UP || ch == 'w' || ch == 'W')
 			move_rotational += +1;
-	}
+	*/
 }
 
 void game::render()

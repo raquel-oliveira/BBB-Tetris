@@ -8,7 +8,7 @@ else
 if [ "$1" = "REL" ]
 then
 	export CPP_FLAGS=" -Wall -Wextra -O2 -std=c++11 "
-	export LINK_FLAGS=" -lcurses "
+	export LINK_FLAGS=" -lcurses -lpthread "
 else
 	echo "please invoke with arg \"DBG\" or \"REL\""
 	exit 1
