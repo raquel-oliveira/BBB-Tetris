@@ -10,12 +10,16 @@
 #include "./stdstyle.h"
 #include "util/api_gpio/pin.h"
 #include "util/api_gpio/pmap.h"
+#include "util/utils.h"
 
 using std::map;
 using std::string;
 using std::set;
 using std::max;
 
+#define PORT_LDR 4 //Light Dependent Resistor
+#define PORT_POT 1 //potentiometer
+#define LIGHT_LIMIT 4000
 
 game::game(game_settings gm_settings): gm_settings(gm_settings), input_mgr(this), cur_figure_mgr(this), rainbow_feat(this)
 {
@@ -120,16 +124,17 @@ void input_manager::process_input()
 {
 	init();
 	Pin btn ("P9_27", Direction::IN, Value::LOW);
-	int btnValue;
+	int btnValue = 0;
+	int ldrValue = 0;
 
 	int ch;
 	while (true)
 	{
 		ch = getch();
 		btnValue = btn.getValue();
-
+		ldrValue = readAnalog(PORT_LDR);
+		
 		if (btnValue == 1){
-			std::cout << btnValue << " btn "<< std::endl;
 			switch(move_rotational){
 				case -1:
 					move_rotational = 0;
@@ -147,6 +152,8 @@ void input_manager::process_input()
 			btnValue=0;
 			usleep(500000);
 		}
+		if (ldrValue > LIGHT_LIMIT )
+			force_fall = true;
 
 		if (ch == ERR)
 			break; // no input yet.
@@ -161,8 +168,6 @@ void input_manager::process_input()
 		}
 		if (!the_game->is_running())
 			continue;
-		if (ch == '\n')
-			force_fall = true;
 		if (ch == KEY_LEFT || ch == 'a' || ch == 'A')
 			move_horizontal += -1;
 		if (ch == KEY_RIGHT || ch == 'd' || ch == 'D')
